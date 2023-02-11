@@ -21,9 +21,10 @@ module Network.Social.Nostr.Types (
   IsTag (..),
   PubKeyTag (..),
   EventTag (..),
-  toEventTag,
+  EventMarker (..),
   encodeTag,
   parseTag,
+  parseTagMaybe,
   AsTag (..),
   Timestamp (..),
   fromPOSIXTime,
@@ -45,6 +46,7 @@ module Network.Social.Nostr.Types (
   Bytes32,
   parseHexBytes32,
   parseHexPublicKey,
+  PetnameTag (..),
 ) where
 
 import Control.Applicative (asum)
@@ -59,7 +61,9 @@ import qualified Data.Aeson as J
 import qualified Data.Aeson.KeyMap as AK
 import qualified Data.Bifunctor as Bi
 import qualified Data.ByteString.Lazy as LBS
+import qualified Data.Char as C
 import Data.Digest.Pure.SHA (sha256)
+import Data.Hashable (Hashable)
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromMaybe)
@@ -106,17 +110,19 @@ fromPOSIXTime = Timestamp . floor
 getCurrentTimestamp :: MonadIO m => m Timestamp
 getCurrentTimestamp = fromPOSIXTime <$> liftIO getPOSIXTime
 
-data EventKind = SetMetadata | TextNote | RecommendServer | OtherKind !Int
+data EventKind = SetMetadata | TextNote | RecommendServer | ContactList | OtherKind !Int
   deriving (Show, Eq, Ord, Generic)
 
 instance Enum EventKind where
   fromEnum SetMetadata = 0
   fromEnum TextNote = 1
   fromEnum RecommendServer = 2
+  fromEnum ContactList = 3
   fromEnum (OtherKind n) = n
   toEnum 0 = SetMetadata
   toEnum 1 = TextNote
   toEnum 2 = RecommendServer
+  toEnum 3 = ContactList
   toEnum n = OtherKind n
 
 instance FromJSON EventKind where
@@ -175,6 +181,9 @@ parseTag Tag {..}
           , actual = tagName
           }
 
+parseTagMaybe :: IsTag a => Tag -> Maybe a
+parseTagMaybe = either (const Nothing) Just . parseTag
+
 -- | Convenient wrapper for turning 'IsTag' instance to 'ToJSON' and 'FromJSON'.
 newtype AsTag a = AsTag {getAsTag :: a}
   deriving (Show, Eq, Ord, Generic)
@@ -188,12 +197,40 @@ instance IsTag a => ToJSON (AsTag a) where
   toJSON = J.toJSON . encodeTag . getAsTag
   {-# INLINE toJSON #-}
 
+data PetnameTag = PetnameTag
+  { pnPubKey :: PublicKey
+  , pnMainRelay :: Maybe Text
+  , pnPetname :: Text
+  }
+  deriving (Show, Eq, Ord, Generic)
+  deriving (FromJSON, ToJSON) via AsTag PetnameTag
+  deriving anyclass (Hashable)
+
+instance IsTag PetnameTag where
+  tagIdentifier = "p"
+  toTagBody PetnameTag {..} =
+    V.fromList [T.pack $ show pnPubKey, fromMaybe "" pnMainRelay, pnPetname]
+  parseTagBody = \case
+    [rawKey, mrelay, petname] -> do
+      pnPubKey <- parseHexPublicKey rawKey
+      pure
+        PetnameTag
+          { pnPubKey
+          , pnMainRelay = toNonEmptyText mrelay
+          , pnPetname = petname
+          }
+    v ->
+      Left $
+        "petname: payload must be of size 3, but got: "
+          <> show v
+
 data PubKeyTag = PubKeyTag
   { pkPubKey :: PublicKey
   , pkRecommendedRelay :: Maybe Text
   }
   deriving (Show, Eq, Ord, Generic)
   deriving (FromJSON, ToJSON) via AsTag PubKeyTag
+  deriving anyclass (Hashable)
 
 instance IsTag PubKeyTag where
   tagIdentifier = "p"
@@ -212,33 +249,66 @@ instance IsTag PubKeyTag where
         "PubKeyTag: payload must be of size 2, but got: "
           <> show v
 
-toEventTag :: Maybe Text -> Event -> EventTag
-toEventTag evtRecommendedRelay evt =
-  EventTag
-    { evtEventId = eventId evt
-    , evtRecommendedRelay
-    }
-
 data EventTag = EventTag
   { evtEventId :: Bytes32
   , evtRecommendedRelay :: Maybe Text
+  , evtMarker :: Maybe EventMarker
   }
   deriving (Show, Eq, Ord, Generic)
   deriving (FromJSON, ToJSON) via AsTag EventTag
+
+data EventMarker = Reply | Root | Mention
+  deriving (Show, Eq, Ord, Generic)
+
+markerOpts :: J.Options
+markerOpts =
+  J.defaultOptions
+    { J.allNullaryToStringTag = True
+    , J.constructorTagModifier = map C.toLower
+    }
+
+instance FromJSON EventMarker where
+  parseJSON = J.genericParseJSON markerOpts
+  {-# INLINE parseJSON #-}
+
+instance ToJSON EventMarker where
+  toJSON = J.genericToJSON markerOpts
+  {-# INLINE toJSON #-}
 
 instance IsTag EventTag where
   tagIdentifier = "e"
   toTagBody EventTag {..} =
     [ T.pack $ show evtEventId
     , fromMaybe "" evtRecommendedRelay
+    , maybe "" (T.toLower . T.pack . show) evtMarker
     ]
   parseTagBody = \case
     [rawBytes, recom] -> do
       evtEventId <- parseHexBytes32 rawBytes
-      pure EventTag {evtEventId, evtRecommendedRelay = toNonEmptyText recom}
+      pure
+        EventTag
+          { evtEventId
+          , evtRecommendedRelay = toNonEmptyText recom
+          , evtMarker = Nothing
+          }
+    [rawBytes, recom, marker] -> do
+      evtEventId <- parseHexBytes32 rawBytes
+      evtMarker <-
+        case marker of
+          "" -> pure Nothing
+          "reply" -> pure $ Just Reply
+          "root" -> pure $ Just Root
+          "mention" -> pure $ Just Mention
+          otr -> Left $ "Event marker must be one of `reply', `root', `mention', or just an empty string, but got: " <> show otr
+      pure
+        EventTag
+          { evtEventId
+          , evtRecommendedRelay = toNonEmptyText recom
+          , evtMarker
+          }
     v ->
       Left $
-        "EventTag: payload must be of size 2, but got: "
+        "EventTag: payload must be of size 2 or 3, but got: "
           <> show v
 
 toNonEmptyText :: Text -> Maybe Text

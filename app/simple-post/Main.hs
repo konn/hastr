@@ -14,45 +14,14 @@ import Data.Aeson (FromJSON)
 import Data.Aeson qualified as J
 import Data.Yaml qualified as Y
 import Network.Social.Nostr.Bech32
+import Network.Social.Nostr.Client
 import Network.Social.Nostr.Types
-import Network.URI
 import Network.WebSockets
 import Options.Applicative qualified as Opt
 import Path
 import RIO
 import RIO.Orphans ()
 import Wuss (runSecureClient)
-
-data Relay = Relay
-  { relayHost :: !String
-  , relayPort :: !Int
-  , relayEndPoint :: !String
-  }
-  deriving (Show, Eq, Ord, Generic)
-
-instance FromJSON Relay where
-  parseJSON = either fail pure . parseRelayUri <=< J.parseJSON
-  {-# INLINE parseJSON #-}
-
-parseRelayUri :: String -> Either String Relay
-parseRelayUri input = do
-  uri <- maybe (Left "Invalid URI") pure $ parseURI input
-  when (uriScheme uri /= "wss:") $
-    Left $
-      "URI scheme must be `wss' but got: " <> show (uriScheme uri)
-  uriAuth <- maybe (Left "URI must be have authority") pure $ uriAuthority uri
-  let relayHost = uriRegName uriAuth
-  relayPort <-
-    if null (uriPort uriAuth)
-      then pure 443
-      else
-        maybe (Left $ "Invalid port number: " <> show (uriPort uriAuth)) pure $
-          readMaybe (uriPort uriAuth)
-  let path0 = uriPath uri
-      relayEndPoint
-        | null path0 = "/"
-        | otherwise = path0
-  pure Relay {..}
 
 data PostSimpleConfig = PostSimpleConfig
   { secretKey :: Bech32OrHex SecretKey
