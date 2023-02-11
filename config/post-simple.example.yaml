@@ -1,0 +1,9 @@
+secretKey: "nsec***"
+relays:
+- wss://eden.nostr.land
+- wss://relay.damus.io
+- wss://nostr-pub.wellorder.net
+- wss://nos.lol
+- wss://relay.snort.social
+- wss://relay.current.fyi
+- wss://relay-jp.nostr.wirednet.jp

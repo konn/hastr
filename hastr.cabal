@@ -1,0 +1,125 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.35.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           hastr
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/hastr#readme>
+homepage:       https://github.com/githubuser/hastr#readme
+bug-reports:    https://github.com/githubuser/hastr/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2023 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/hastr
+
+library
+  exposed-modules:
+      Crypto.Signature.Schorr.Secp256k1
+      Network.Social.Nostr.Bech32
+      Network.Social.Nostr.Types
+  other-modules:
+      Paths_hastr
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      SHA
+    , aeson
+    , base >=4.7 && <5
+    , bech32
+    , bytestring
+    , containers
+    , crypto-rng
+    , mod
+    , monad-loops
+    , network-uri
+    , primitive
+    , tagged
+    , text
+    , time
+    , vector
+    , websockets
+    , wuss
+    , yaml
+  default-language: Haskell2010
+
+executable hastr-simple-post
+  main-is: Main.hs
+  other-modules:
+      Paths_hastr
+  hs-source-dirs:
+      app/simple-post
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      SHA
+    , aeson
+    , base >=4.7 && <5
+    , bech32
+    , bytestring
+    , containers
+    , crypto-rng
+    , hastr
+    , mod
+    , monad-loops
+    , network-uri
+    , optparse-applicative
+    , path
+    , path-io
+    , primitive
+    , rio
+    , rio-orphans
+    , tagged
+    , text
+    , time
+    , vector
+    , websockets
+    , wuss
+    , yaml
+  default-language: Haskell2010
+
+test-suite hastr-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Crypto.Signature.Schorr.Secp256k1Spec
+      Paths_hastr
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-tool-depends:
+      tasty-discover:tasty-discover
+  build-depends:
+      SHA
+    , aeson
+    , base >=4.7 && <5
+    , bech32
+    , bytestring
+    , containers
+    , crypto-rng
+    , hastr
+    , mod
+    , monad-loops
+    , network-uri
+    , primitive
+    , tagged
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , text
+    , time
+    , vector
+    , websockets
+    , wuss
+    , yaml
+  default-language: Haskell2010
