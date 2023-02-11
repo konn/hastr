@@ -52,6 +52,7 @@ import Data.ByteString.Short (ShortByteString (..))
 import qualified Data.ByteString.Short as SBS
 import Data.Digest.Pure.SHA (Digest, SHA256State, bytestringDigest, sha256)
 import Data.Function (on)
+import Data.Hashable (Hashable)
 import Data.Mod (Mod (..))
 import Data.Monoid
 import Data.Primitive.ByteArray (ByteArray (..))
@@ -80,7 +81,7 @@ data Point
 
 newtype SecretKey = SecretKey {_rawSecretKey :: Bytes32}
   deriving (Show, Eq, Ord)
-  deriving newtype (ToJSON)
+  deriving newtype (ToJSON, Hashable)
 
 instance FromJSON SecretKey where
   parseJSON j =
@@ -104,10 +105,11 @@ parseHexPublicKey = fmap PublicKey . parseHexBytes32
 
 newtype PublicKey = PublicKey {rawPublicKey :: Bytes32}
   deriving (Show, Eq, Ord)
-  deriving newtype (FromJSON, ToJSON)
+  deriving newtype (FromJSON, ToJSON, Hashable)
 
 newtype Seed = Seed {getSeed :: Bytes32}
   deriving (Show, Eq, Ord)
+  deriving newtype (Hashable)
 
 generateSecretKey :: CryptoRNG m => m SecretKey
 {-# INLINE generateSecretKey #-}
@@ -171,6 +173,7 @@ infixr 7 *.
 
 newtype Bytes32 = Bytes32 {getBytes32 :: SBS.ShortByteString}
   deriving (Eq, Ord)
+  deriving newtype (Hashable)
 
 parseHexBytes32 :: Text -> Either String Bytes32
 parseHexBytes32 txt = do

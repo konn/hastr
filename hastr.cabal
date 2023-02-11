@@ -27,6 +27,7 @@ library
   exposed-modules:
       Crypto.Signature.Schorr.Secp256k1
       Network.Social.Nostr.Bech32
+      Network.Social.Nostr.Client
       Network.Social.Nostr.Types
   other-modules:
       Paths_hastr
@@ -41,6 +42,8 @@ library
     , bytestring
     , containers
     , crypto-rng
+    , dlist
+    , hashable
     , mod
     , monad-loops
     , network-uri
@@ -48,6 +51,7 @@ library
     , tagged
     , text
     , time
+    , unordered-containers
     , vector
     , websockets
     , wuss
@@ -69,6 +73,8 @@ executable hastr-simple-post
     , bytestring
     , containers
     , crypto-rng
+    , dlist
+    , hashable
     , hastr
     , mod
     , monad-loops
@@ -82,6 +88,7 @@ executable hastr-simple-post
     , tagged
     , text
     , time
+    , unordered-containers
     , vector
     , websockets
     , wuss
@@ -107,6 +114,8 @@ test-suite hastr-test
     , bytestring
     , containers
     , crypto-rng
+    , dlist
+    , hashable
     , hastr
     , mod
     , monad-loops
@@ -118,6 +127,7 @@ test-suite hastr-test
     , tasty-quickcheck
     , text
     , time
+    , unordered-containers
     , vector
     , websockets
     , wuss
